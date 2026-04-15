@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WHOOP Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            color: #333;
+        }
+        .metric {
+            margin: 20px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <h1>WHOOP Health Metrics Dashboard</h1>
+    <div class="metric">
+        <h2>Recovery</h2>
+        <p id="recovery">Loading...</p>
+    </div>
+    <div class="metric">
+        <h2>Strain</h2>
+        <p id="strain">Loading...</p>
+    </div>
+    <div class="metric">
+        <h2>Heart Rate Variability (HRV)</h2>
+        <p id="hrv">Loading...</p>
+    </div>
+    <div class="metric">
+        <h2>Sleep Data</h2>
+        <p id="sleep">Loading...</p>
+    </div>
+    <div class="metric">
+        <h2>Access Token Management</h2>
+        <p>Manage your access tokens below:</p>
+        <input type="text" id="accessToken" placeholder="Enter your access token" />
+        <button onclick="saveToken()">Save Token</button>
+    </div>
+    <script>
+        function loadMetrics() {
+            // Fetch metrics from WHOOP API here
+            document.getElementById('recovery').innerText = 'Sample Recovery Data';
+            document.getElementById('strain').innerText = 'Sample Strain Data';
+            document.getElementById('hrv').innerText = 'Sample HRV Data';
+            document.getElementById('sleep').innerText = 'Sample Sleep Data';
+        }
+        
+        function saveToken() {
+            const token = document.getElementById('accessToken').value;
+            console.log('Token saved:', token);
+            alert('Token saved successfully!');
+        }
+
+        window.onload = loadMetrics;
+    </script>
+</body>
+</html>
