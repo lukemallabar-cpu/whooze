@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Whooze — Connect to WHOOP</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f5f5f3;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      border: 1px solid #e5e5e5;
+      padding: 2rem;
+      width: 100%;
+      max-width: 480px;
+    }
+    .logo {
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+      color: #111;
+    }
+    .subtitle {
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 2rem;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      color: #555;
+      margin-bottom: 5px;
+    }
+    input {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #111;
+      background: #fff;
+      margin-bottom: 1rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input:focus { border-color: #aaa; }
+    input[readonly] { background: #f9f9f9; color: #555; font-family: monospace; font-size: 12px; }
+    .redirect-row { display: flex; gap: 8px; margin-bottom: 1rem; }
+    .redirect-row input { margin-bottom: 0; flex: 1; }
+    button {
+      width: 100%;
+      padding: 10px;
+      background: #111;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    button:hover { opacity: 0.85; }
+    button:disabled { opacity: 0.4; cursor: default; }
+    .copy-btn {
+      width: auto;
+      padding: 9px 14px;
+      background: #f0f0f0;
+      color: #333;
+      flex-shrink: 0;
+      font-size: 13px;
+    }
+    .step-label {
+      font-size: 12px;
+      color: #aaa;
+      margin-bottom: 1.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .token-box {
+      background: #f5f5f3;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1rem;
+    }
+    .token-box p { font-size: 12px; color: #888; margin-bottom: 4px; }
+    .token-box textarea {
+      width: 100%;
+      border: none;
+      background: transparent;
+      font-family: monospace;
+      font-size: 11px;
+      color: #333;
+      resize: none;
+      outline: none;
+      margin: 0;
+      padding: 0;
+    }
+    .success-label { font-size: 13px; color: #2d7a4f; margin-bottom: 1.5rem; font-weight: 500; }
+    .error {
+      background: #fff0f0;
+      border: 1px solid #fcc;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-top: 1rem;
+      font-size: 13px;
+      color: #c00;
+      display: none;
+    }
+    .instructions {
+      background: #f5f5f3;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.5rem;
+      font-size: 13px;
+      color: #555;
+      line-height: 1.6;
+    }
+    .instructions strong { color: #111; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <div class="logo">Whooze</div>
+  <div class="subtitle">Connect your WHOOP account</div>
+
+  <div id="step-credentials">
+    <div class="step-label">Step 1 of 2 — credentials</div>
+
+    <div class="instructions">
+      Copy the redirect URL below and add it to your <strong>WHOOP Developer Dashboard</strong> under your app's allowed redirect URLs, then enter your credentials and connect.
+    </div>
+
+    <label>Redirect URL (add this to WHOOP dashboard)</label>
+    <div class="redirect-row">
+      <input type="text" id="redirect-url" readonly />
+      <button class="copy-btn" onclick="copyRedirect()">Copy</button>
+    </div>
+
+    <label>Client ID</label>
+    <input type="text" id="client-id" placeholder="Your WHOOP client ID" />
+
+    <label>Client secret</label>
+    <input type="password" id="client-secret" placeholder="Your WHOOP client secret" />
+
+    <button onclick="startAuth()">Connect to WHOOP →</button>
+    <div class="error" id="error-1"></div>
+  </div>
+
+  <div id="step-exchange" style="display:none;">
+    <div class="step-label">Step 2 of 2 — exchange code</div>
+    <div class="instructions">
+      WHOOP redirected back with an authorisation code. Click below to exchange it for your access token.
+    </div>
+    <div class="token-box">
+      <p>Auth code received</p>
+      <textarea rows="2" readonly id="code-preview"></textarea>
+    </div>
+    <button id="exchange-btn" onclick="exchangeToken()">Get access token →</button>
+    <div class="error" id="error-2"></div>
+  </div>
+
+  <div id="step-done" style="display:none;">
+    <div class="success-label">Connected successfully</div>
+    <div class="instructions">
+      Copy your access token and paste it into Claude. Tell Claude: <strong>"Here is my WHOOP access token: [paste token]"</strong>
+    </div>
+    <div class="token-box">
+      <p>Access token</p>
+      <textarea rows="4" readonly id="access-token-out"></textarea>
+    </div>
+    <div class="token-box">
+      <p>Refresh token (save this somewhere safe)</p>
+      <textarea rows="3" readonly id="refresh-token-out"></textarea>
+    </div>
+    <button onclick="copyToken()">Copy access token</button>
+  </div>
+</div>
+
+<script>
+  const WHOOP_AUTH_URL = 'https://api.prod.whoop.com/oauth/oauth2/auth';
+  const WHOOP_TOKEN_URL = 'https://api.prod.whoop.com/oauth/oauth2/token';
+  const SCOPES = 'offline read:recovery read:sleep read:workout read:profile read:cycles read:body_measurement';
+
+  const redirectUrl = window.location.href.split('?')[0].split('#')[0];
+  document.getElementById('redirect-url').value = redirectUrl;
+
+  function showError(id, msg) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  function copyRedirect() {
+    navigator.clipboard.writeText(redirectUrl);
+    const btn = event.target;
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 2000);
+  }
+
+  function copyToken() {
+    const token = document.getElementById('access-token-out').value;
+    navigator.clipboard.writeText(token);
+    const btn = event.target;
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy access token', 2000);
+  }
+
+  function generateState() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let s = '';
+    for (let i = 0; i < 8; i++) s += chars[Math.floor(Math.random() * chars.length)];
+    return s;
+  }
+
+  function startAuth() {
+    const clientId = document.getElementById('client-id').value.trim();
+    const clientSecret = document.getElementById('client-secret').value.trim();
+    if (!clientId || !clientSecret) {
+      showError('error-1', 'Please enter both client ID and client secret.');
+      return;
+    }
+    localStorage.setItem('whooze_client_id', clientId);
+    localStorage.setItem('whooze_client_secret', clientSecret);
+    const state = generateState();
+    localStorage.setItem('whooze_state', state);
+
+    const params = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUrl,
+      response_type: 'code',
+      scope: SCOPES,
+      state: state
+    });
+    window.location.href = WHOOP_AUTH_URL + '?' + params.toString();
+  }
+
+  async function exchangeToken() {
+    const btn = document.getElementById('exchange-btn');
+    btn.textContent = 'Exchanging...';
+    btn.disabled = true;
+
+    const clientId = localStorage.getItem('whooze_client_id');
+    const clientSecret = localStorage.getItem('whooze_client_secret');
+    const code = new URLSearchParams(window.location.search).get('code');
+
+    try {
+      const res = await fetch(WHOOP_TOKEN_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'authorization_code',
+          code: code,
+          redirect_uri: redirectUrl,
+          client_id: clientId,
+          client_secret: clientSecret
+        }).toString()
+      });
+
+      const data = await res.json();
+
+      if (data.access_token) {
+        document.getElementById('access-token-out').value = data.access_token;
+        document.getElementById('refresh-token-out').value = data.refresh_token || '(none)';
+        document.getElementById('step-exchange').style.display = 'none';
+        document.getElementById('step-done').style.display = 'block';
+        localStorage.removeItem('whooze_client_id');
+        localStorage.removeItem('whooze_client_secret');
+        localStorage.removeItem('whooze_state');
+      } else {
+        showError('error-2', 'Exchange failed: ' + (data.error_description || data.error || JSON.stringify(data)));
+        btn.textContent = 'Get access token →';
+        btn.disabled = false;
+      }
+    } catch (e) {
+      showError('error-2', 'Request failed: ' + e.message);
+      btn.textContent = 'Get access token →';
+      btn.disabled = false;
+    }
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  const error = params.get('error');
+
+  if (error) {
+    showError('error-1', 'WHOOP returned an error: ' + (params.get('error_description') || error));
+  } else if (code) {
+    document.getElementById('step-credentials').style.display = 'none';
+    document.getElementById('step-exchange').style.display = 'block';
+    document.getElementById('code-preview').value = code;
+  }
+</script>
+</body>
+</html>
